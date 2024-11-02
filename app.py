@@ -38,14 +38,14 @@ def check_user():
     else:
         return jsonify({'valid': False})
 
-@app.route('add_user', methods=['POST'])
+@app.route('/add_user', methods=['POST'])  # Исправлено здесь
 def add_user():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
 
     if User.query.filter_by(username=username).first():
-        return jsonify({'message': False}), 409
+        return jsonify({'message': False}), 409  # Возвращаем 409, если пользователь уже существует
 
     hashed_password = generate_password_hash(password)
     new_user = User(username=username, password=hashed_password)
@@ -53,8 +53,7 @@ def add_user():
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({'message':True}),201
-
+    return jsonify({'message': True}), 201  # Возвращаем 201, если пользователь успешно добавлен
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
