@@ -12,28 +12,24 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
 
-@app.before_first_request
-def create_tables():
-    db.create_all()
-    init_admin_user()
-
 def init_admin_user():
     admin_user = User.query.filter_by(username="admin").first()
     if not admin_user:
-        hashed_password = generate_password_hash("qwerty", method='sha256')
+        hashed_password = generate_password_hash("qwerty")  # Используем метод по умолчанию
         admin_user = User(username="admin", password=hashed_password)
         db.session.add(admin_user)
         db.session.commit()
+
+# Создаем таблицы и инициализируем администратора
+with app.app_context():
+    db.create_all()
+    init_admin_user()
 
 @app.route('/check_user', methods=['POST'])
 def check_user():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
-
-    # Проверка, что данные присутствуют
-    if not username or not password:
-        return jsonify({'valid': False, 'message': 'Username and password are required.'}), 400
 
     user = User.query.filter_by(username=username).first()
 
