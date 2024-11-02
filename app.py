@@ -38,5 +38,23 @@ def check_user():
     else:
         return jsonify({'valid': False})
 
+@app.route('add_user', methods=['POST'])
+def add_user():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    if User.query.filter_by(username=username).first():
+        return jsonify({'message': False}), 409
+
+    hashed_password = generate_password_hash(password)
+    new_user = User(username=username, password=hashed_password)
+
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({'message':True}),201
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
