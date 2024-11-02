@@ -2,11 +2,10 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
-
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db=SQLAlchemy(app)
+db = SQLAlchemy(app)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -26,11 +25,15 @@ def init_admin_user():
         db.session.add(admin_user)
         db.session.commit()
 
-@app.rpute('/check_user', methods=['POST'])
+@app.route('/check_user', methods=['POST'])
 def check_user():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
+
+    # Проверка, что данные присутствуют
+    if not username or not password:
+        return jsonify({'valid': False, 'message': 'Username and password are required.'}), 400
 
     user = User.query.filter_by(username=username).first()
 
@@ -38,7 +41,6 @@ def check_user():
         return jsonify({'valid': True})
     else:
         return jsonify({'valid': False})
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
