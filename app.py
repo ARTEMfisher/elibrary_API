@@ -8,10 +8,12 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
+
 
 class Book(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -31,6 +33,7 @@ class Book(db.Model):
             'isFree': self.isFree
         }
 
+
 def init_admin_user():
     admin_user = User.query.filter_by(username="admin").first()
     if not admin_user:
@@ -39,12 +42,15 @@ def init_admin_user():
         db.session.add(admin_user)
         db.session.commit()
 
+
 def load_books_from_json(file_path):
+    db.session.query(Book).delete()  # Удаляем все существующие книги
+    db.session.commit()
+
     with open(file_path, 'r', encoding='utf-8') as f:
         books_data = json.load(f)
         for book_data in books_data:
             book = Book(
-                id=book_data['id'],
                 title=book_data['title'],
                 author=book_data['author'],
                 image_url=book_data['image_url'],
@@ -54,10 +60,12 @@ def load_books_from_json(file_path):
             db.session.add(book)
         db.session.commit()
 
+
 with app.app_context():
     db.create_all()
     init_admin_user()
     load_books_from_json('books.json')
+
 
 @app.route('/check_user', methods=['POST'])
 def check_user():
@@ -70,6 +78,7 @@ def check_user():
         return jsonify({'valid': True})
     else:
         return jsonify({'valid': False})
+
 
 @app.route('/add_user', methods=['POST'])
 def add_user():
@@ -87,10 +96,12 @@ def add_user():
 
     return jsonify({'message': True}), 201
 
+
 @app.route('/books', methods=['GET'])
 def get_books():
     books = Book.query.all()
     return jsonify([book.to_dict() for book in books]), 200
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
