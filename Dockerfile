@@ -19,4 +19,4 @@ ENV PATH="/app/venv/bin:$PATH"
 EXPOSE 5000
 
 # Запускаем Flask-приложение
-CMD ["python", "app.py"]
+CMD ["python3", "app.py"]
