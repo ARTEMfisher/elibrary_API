@@ -102,6 +102,12 @@ def get_books():
     books = Book.query.all()
     return jsonify([book.to_dict() for book in books]), 200
 
+@app.route('/get_users', methods=['GET'])
+def get_users():
+    users = User.query.all()
+    users_list = [{'id':user.id, 'username':user.username} for user in users]
+    return jsonify(users_list), 200
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
