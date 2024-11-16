@@ -7,13 +7,8 @@ WORKDIR /app
 # Копируем файлы проекта в контейнер
 COPY . .
 
-# Создаем виртуальное окружение и устанавливаем зависимости
-RUN . venv/bin/activate && \
-    pip install --upgrade pip && \
-    pip install -r requirements.txt
-
-# Указываем контейнеру, что по умолчанию он будет использовать виртуальное окружение
-ENV PATH="/app/venv/bin:$PATH"
+# Устанавливаем зависимости
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Открываем порт, который будет использовать Flask (5000)
 EXPOSE 5000
