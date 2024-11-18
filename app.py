@@ -24,6 +24,23 @@ class User(db.Model):
             'requests': self.requests
         }
 
+# Модель заявки
+class Request(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Связь с пользователем
+    book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=False)  # Связь с книгой
+    status = db.Column(db.Boolean, nullable=True)  # Статус заявки (True/False/None)
+
+    user = db.relationship('User', backref='requests_made')  # Обратная связь с пользователем
+    book = db.relationship('Book', backref='requests_received')  # Обратная связь с книгой
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'book_id': self.book_id,
+            'status': self.status
+        }
 
 # Модель книги
 class Book(db.Model):
@@ -173,6 +190,11 @@ def get_book_requests(book_id):
     if not book:
         return jsonify({'message': 'Book not found'}), 404
     return jsonify(book.request_status), 200
+
+@app.route('/requests', methods=['GET'])
+def get_requests():
+    requests = Request.query.all()  # Получаем все заявки из базы данных
+    return jsonify([req.to_dict() for req in requests]), 200
 
 
 # Запуск приложения
