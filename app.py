@@ -253,6 +253,27 @@ def get_book_title(book_id):
         return jsonify({'message': 'Book not found'}), 404
     return jsonify({'title': book.title}), 200
 
+@app.route('/getUserAndBook', methods=['GET'])
+def get_book_and_user_by_ids():
+    book_id = request.args.get('book_id', type=int)
+    user_id = request.args.get('user_id', type=int)
+
+    # Получаем книгу по ID
+    book = Book.query.get(book_id)
+    if not book:
+        return jsonify({'message': 'Book not found'}), 404
+
+    # Получаем пользователя по ID
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+
+    # Возвращаем название книги и имя пользователя
+    return jsonify({
+        'book_title': book.title,
+        'username': user.username,
+    }), 200
+
 
 # Запуск приложения
 if __name__ == '__main__':
