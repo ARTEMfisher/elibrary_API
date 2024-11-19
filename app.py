@@ -245,6 +245,15 @@ def create_request():
         'request': new_request.to_dict()
     }), 201
 
+# Эндпоинт: получить название книги по id
+@app.route('/book_title/<int:book_id>', methods=['GET'])
+def get_book_title(book_id):
+    book = Book.query.get(book_id)
+    if not book:
+        return jsonify({'message': 'Book not found'}), 404
+    return jsonify({'title': book.title}), 200
+
+
 # Запуск приложения
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
