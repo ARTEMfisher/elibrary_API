@@ -113,6 +113,18 @@ def check_user():
     else:
         return jsonify({'valid': False})
 
+@app.route('/get_user_id', methods=['GET'])
+def get_user_id():
+    username = request.args.get('username')  # Получаем username из параметра запроса
+    if not username:
+        return jsonify({'message': 'Username is required'}), 400
+
+    user = User.query.filter_by(username=username).first()  # Ищем пользователя по username
+
+    if user:
+        return jsonify({'user_id': user.id}), 200  # Возвращаем id пользователя
+    else:
+        return jsonify({'message': 'User not found'}), 404  # Если пользователя нет
 
 # Эндпоинт: добавление нового пользователя
 @app.route('/add_user', methods=['POST'])
@@ -196,6 +208,42 @@ def get_requests():
     requests = Request.query.all()  # Получаем все заявки из базы данных
     return jsonify([req.to_dict() for req in requests]), 200
 
+@app.route('/create_request', methods=['POST'])
+def create_request():
+    data = request.get_json()
+
+    # Извлекаем данные из тела запроса
+    user_id = data.get('user_id')
+    book_id = data.get('book_id')
+
+    # Проверяем наличие необходимых данных
+    if not user_id or not book_id:
+        return jsonify({'message': 'user_id and book_id are required'}), 400
+
+    # Проверяем, существует ли пользователь и книга
+    user = User.query.get(user_id)
+    book = Book.query.get(book_id)
+
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+    if not book:
+        return jsonify({'message': 'Book not found'}), 404
+
+    # Создаём новую заявку
+    new_request = Request(
+        user_id=user_id,
+        book_id=book_id,
+        status=None  # Устанавливаем статус заявки в NULL
+    )
+
+    # Сохраняем заявку в базе данных
+    db.session.add(new_request)
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Request created successfully',
+        'request': new_request.to_dict()
+    }), 201
 
 # Запуск приложения
 if __name__ == '__main__':
