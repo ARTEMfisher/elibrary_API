@@ -155,11 +155,26 @@ def get_users():
 
 
 # Эндпоинт: получение списка всех книг
-@app.route('/books', methods=['GET'])
-def get_books():
-    books = Book.query.all()
-    return jsonify([book.to_dict() for book in books]), 200
+# @app.route('/books', methods=['GET'])
+# def get_books():
+#     books = Book.query.all()
+#     return jsonify([book.to_dict() for book in books]), 200
 
+@socketio.on('connect')
+def handle_connect():
+    books = [book.to_dict() for book in Book.query.all()]
+    emit('books_stream', books)
+
+# Обновление списка книг при изменении
+def broadcast_books_update():
+    books = [book.to_dict() for book in Book.query.all()]
+    socketio.emit('books_stream', books)
+
+@app.route('/update_books', methods=['POST'])
+def update_books():
+    # Логика обновления книг
+    broadcast_books_update()
+    return jsonify({'message': 'Books updated'}), 200
 
 
 # Эндпоинт: получить заявки пользователя
