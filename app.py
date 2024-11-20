@@ -269,13 +269,21 @@ def update_request_status():
 
 @app.route('/user_requests/<int:user_id>', methods=['GET'])
 def get_user_requests(user_id):
+    # Проверяем, существует ли пользователь
     user = User.query.get(user_id)
     if not user:
         return jsonify({'message': 'User not found'}), 404
 
-    requests = Request.query.filter_by(user_id=user_id).all()
-    requests_data = [req.to_dict() for req in requests]
-    return jsonify(requests_data), 200
+    # Формируем список заявок пользователя
+    user_requests = [
+        {
+            'book_title': request.book.title if request.book else None,  # Название книги
+            'status': request.status  # Статус заявки
+        }
+        for request in user.requests_made  # Обход всех заявок пользователя
+    ]
+
+    return jsonify(user_requests), 200
 
 
 @socketio.on('subscribe_requests')
