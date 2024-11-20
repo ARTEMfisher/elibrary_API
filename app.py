@@ -266,6 +266,18 @@ def update_request_status():
     socketio.emit('request_update', [req.to_dict() for req in Request.query.all()])
     return jsonify({'message': 'Request status updated successfully'}), 200
 
+
+@app.route('/user_requests/<int:user_id>', methods=['GET'])
+def get_user_requests(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+
+    requests = Request.query.filter_by(user_id=user_id).all()
+    requests_data = [req.to_dict() for req in requests]
+    return jsonify(requests_data), 200
+
+
 @socketio.on('subscribe_requests')
 def handle_subscribe_requests():
     emit('request_update', [req.to_dict() for req in Request.query.all()])
