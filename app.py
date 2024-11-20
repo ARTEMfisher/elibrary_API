@@ -6,7 +6,6 @@ import json
 
 
 app = Flask(__name__)
-socketio = SocketIO(app)
 app.config['SECRET_KEY'] = 'secret'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -160,23 +159,14 @@ def get_users():
 #     books = Book.query.all()
 #     return jsonify([book.to_dict() for book in books]), 200
 
-@socketio.on('connect')
-def handle_connect():
-    books = [book.to_dict() for book in Book.query.all()]
-    emit('books_stream', books)
-
-# Обновление списка книг при изменении
 def broadcast_books_update():
     books = [book.to_dict() for book in Book.query.all()]
     socketio.emit('books_stream', books)
 
 @app.route('/update_books', methods=['POST'])
 def update_books():
-    # Логика обновления книг
     broadcast_books_update()
     return jsonify({'message': 'Books updated'}), 200
-
-
 # Эндпоинт: получить заявки пользователя
 @app.route('/user_requests/<int:user_id>', methods=['GET'])
 def get_user_requests(user_id):
@@ -282,8 +272,12 @@ def update_request_status():
     return jsonify({'message': 'Request status updated successfully'}), 200
 
 @socketio.on('subscribe_requests')
-def handle_subscribe_requests():
-    emit('request_update', [req.to_dict() for req in Request.query.all()])
+def handle_requests_subscription():
+    while True:
+        requests = Request.query.all()
+        requests_data = [{'id': req.id, 'status': req.status, 'book_id': req.book_id, 'user_id': req.user_id} for req in requests]
+        emit('request_update', requests_data)
+        socketio.sleep(1)
 
 # Запуск приложения
 if __name__ == '__main__':
