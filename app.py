@@ -268,7 +268,7 @@ def update_request_status():
 
 
 @app.route('/user_requests_by_id/<int:user_id>', methods=['GET'])
-def get_user_requests(user_id):
+def get_user_requests_by_id(user_id):
     # Проверяем, существует ли пользователь
     user = User.query.get(user_id)
     if not user:
