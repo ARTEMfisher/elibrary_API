@@ -267,7 +267,7 @@ def update_request_status():
     return jsonify({'message': 'Request status updated successfully'}), 200
 
 
-@app.route('/user_requests/<int:user_id>', methods=['GET'])
+@app.route('/user_requests_by_id/<int:user_id>', methods=['GET'])
 def get_user_requests(user_id):
     # Проверяем, существует ли пользователь
     user = User.query.get(user_id)
