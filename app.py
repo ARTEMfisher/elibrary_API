@@ -245,6 +245,35 @@ def get_book_and_user_by_ids():
         'username': user.username,
     }), 200
 
+@app.route('/update_request_status', methods=['POST'])
+def update_request_status():
+    data = request.get_json()
+    request_id = data.get('requestId')
+    status = data.get('status')
+
+    # Проверка наличия необходимых данных
+    if request_id is None or status is None:
+        return jsonify({'message': 'requestId and status are required'}), 400
+
+    # Проверка, что status это булевое значение
+    if not isinstance(status, bool):
+        return jsonify({'message': 'Status must be a boolean'}), 400
+
+    # Находим заявку по id
+    request_entry = Request.query.get(request_id)
+    if not request_entry:
+        return jsonify({'message': 'Request not found'}), 404
+
+    # Обновляем статус заявки
+    request_entry.status = status
+    db.session.commit()  # Сохраняем изменения в базе данных
+
+    return jsonify({
+        'message': 'Request status updated successfully',
+        'request_id': request_entry.id,
+        'new_status': request_entry.status
+    }), 200
+
 
 # Запуск приложения
 if __name__ == '__main__':
