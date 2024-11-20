@@ -245,6 +245,7 @@ def get_book_and_user_by_ids():
         'username': user.username,
     }), 200
 
+
 @app.route('/update_request_status', methods=['POST'])
 def update_request_status():
     data = request.get_json()
@@ -264,14 +265,25 @@ def update_request_status():
     if not request_entry:
         return jsonify({'message': 'Request not found'}), 404
 
+    # Находим книгу, связанную с заявкой
+    book_entry = Book.query.get(request_entry.book_id)
+    if not book_entry:
+        return jsonify({'message': 'Book not found'}), 404
+
     # Обновляем статус заявки
     request_entry.status = status
+
+    # Если заявка принята (status = True), обновляем статус книги
+    if status:
+        book_entry.isFree = False  # Статус книги меняем на False (книга больше не доступна)
+
     db.session.commit()  # Сохраняем изменения в базе данных
 
     return jsonify({
         'message': 'Request status updated successfully',
         'request_id': request_entry.id,
-        'new_status': request_entry.status
+        'new_status': request_entry.status,
+        'book_status': book_entry.isFree
     }), 200
 
 
