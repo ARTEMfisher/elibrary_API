@@ -285,6 +285,28 @@ def get_user_requests_by_id(user_id):
 
     return jsonify(user_requests), 200
 
+@app.route('/search_books', methods=['GET'])
+def search_books():
+    query = request.args.get('query', '').strip().lower()  # Получаем параметр "query"
+    if not query:
+        return jsonify({'error': 'Query parameter is required'}), 400
+
+    # Попробуем интерпретировать query как ID, если это возможно
+    try:
+        query_id = int(query)
+    except ValueError:
+        query_id = None
+
+    # Поиск книг по ID, названию или автору
+    books = Book.query.filter(
+        (Book.id == query_id) |  # Поиск по ID
+        (Book.title.ilike(f"%{query}%")) |  # Поиск по названию
+        (Book.author.ilike(f"%{query}%"))   # Поиск по автору
+    ).all()
+
+    # Возвращаем найденные книги
+    return jsonify([book.to_dict() for book in books]), 200
+
 
 @socketio.on('subscribe_requests')
 def handle_subscribe_requests():
