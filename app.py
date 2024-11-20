@@ -158,33 +158,6 @@ def get_books():
     return jsonify([book.to_dict() for book in books]), 200
 
 
-# Эндпоинт: добавление заявки
-@app.route('/add_request', methods=['POST'])
-def add_request():
-    data = request.get_json()
-    user_id = data['userId']
-    book_id = data['bookId']
-    status = data.get('status', None)
-
-    user = User.query.get(user_id)
-    book = Book.query.get(book_id)
-
-    if not user or not book:
-        return jsonify({'message': 'User or book not found'}), 404
-
-    # Обновить заявки пользователя
-    if user.requests is None:
-        user.requests = []
-    user.requests.append({'bookId': book_id, 'status': status})
-
-    # Обновить статус заявок на книгу
-    if book.request_status is None:
-        book.request_status = []
-    book.request_status.append({'userId': user_id, 'status': status})
-
-    db.session.commit()
-    return jsonify({'message': 'Request added successfully'}), 201
-
 
 # Эндпоинт: получить заявки пользователя
 @app.route('/user_requests/<int:user_id>', methods=['GET'])
@@ -209,18 +182,16 @@ def get_requests():
     return jsonify([req.to_dict() for req in requests]), 200
 
 @app.route('/create_request', methods=['POST'])
-def create_request():
+def add_request():
     data = request.get_json()
-
-    # Извлекаем данные из тела запроса
-    user_id = data.get('user_id')
-    book_id = data.get('book_id')
+    user_id = data.get('userId')
+    book_id = data.get('bookId')
 
     # Проверяем наличие необходимых данных
     if not user_id or not book_id:
-        return jsonify({'message': 'user_id and book_id are required'}), 400
+        return jsonify({'message': 'userId and bookId are required'}), 400
 
-    # Проверяем, существует ли пользователь и книга
+    # Проверяем существование пользователя и книги
     user = User.query.get(user_id)
     book = Book.query.get(book_id)
 
@@ -230,19 +201,19 @@ def create_request():
         return jsonify({'message': 'Book not found'}), 404
 
     # Создаём новую заявку
-    new_request = Request(
-        user_id=user_id,
-        book_id=book_id,
-        status=None  # Устанавливаем статус заявки в NULL
-    )
-
-    # Сохраняем заявку в базе данных
+    new_request = Request(user_id=user_id, book_id=book_id, status=None)
     db.session.add(new_request)
-    db.session.commit()
+    db.session.commit()  # Коммит для получения ID новой заявки
+
+    # Обновляем JSON поле `requests` пользователя
+    if user.requests is None:
+        user.requests = []
+    user.requests.append(new_request.id)  # Добавляем только ID заявки
+    db.session.commit()  # Сохраняем изменения в пользователе
 
     return jsonify({
-        'message': 'Request created successfully',
-        'request': new_request.to_dict()
+        'message': 'Request added successfully',
+        'request_id': new_request.id
     }), 201
 
 # Эндпоинт: получить название книги по id
