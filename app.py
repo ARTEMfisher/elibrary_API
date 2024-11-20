@@ -6,6 +6,8 @@ import json
 
 
 app = Flask(__name__)
+socketio = SocketIO(app)
+app.config['SECRET_KEY'] = 'secret'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -177,10 +179,26 @@ def get_book_requests(book_id):
         return jsonify({'message': 'Book not found'}), 404
     return jsonify(book.request_status), 200
 
+# @app.route('/requests', methods=['GET'])
+# def get_requests():
+#     requests = Request.query.all()  # Получаем все заявки из базы данных
+#     return jsonify([req.to_dict() for req in requests]), 200
+
 @app.route('/requests', methods=['GET'])
 def get_requests():
-    requests = Request.query.all()  # Получаем все заявки из базы данных
-    return jsonify([req.to_dict() for req in requests]), 200
+    # This will send all current requests as an initial load.
+    requests = Request.query.all()
+    requests_data = [{'id': req.id, 'status': req.status, 'book_id': req.book_id, 'user_id': req.user_id} for req in requests]
+    return jsonify(requests_data)
+
+@socketio.on('subscribe_requests')
+def handle_requests_subscription():
+    # Emit updates about requests as they change
+    while True:
+        requests = Request.query.all()  # Get updated requests
+        requests_data = [{'id': req.id, 'status': req.status, 'book_id': req.book_id, 'user_id': req.user_id} for req in requests]
+        emit('request_update', requests_data)
+        socketio.sleep(1)
 
 @app.route('/create_request', methods=['POST'])
 def add_request():
@@ -290,4 +308,4 @@ def update_request_status():
 
 # Запуск приложения
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    socketio.run(app, host='0.0.0.0', port=5000)
