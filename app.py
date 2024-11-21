@@ -66,6 +66,28 @@ class Book(db.Model):
             'request_status': self.request_status
         }
 
+class BookReturn(db.Model):
+
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.Integer, nullable=False)
+    user_id = db.Column(db.Integer, nullable=False)
+    book_id = db.Column(db.Integer, nullable=False)
+    is_returned = db.Column(db.Boolean, nullable=False, default=False)
+
+
+    # def __repr__(self):
+    #     return f'<BookReturn {self.id}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'request_id': self.request_id,
+            'user_id': self.user_id,
+            'book_id': self.book_id,
+            'is_returned': self.is_returned
+        }
+
+
 
 # Инициализация администратора
 def init_admin_user():
@@ -309,6 +331,11 @@ def search_books():
 
     # Возвращаем найденные книги
     return jsonify([book.to_dict() for book in books]), 200
+
+@app.route('/returns', methods=['GET'])
+def get_returns():
+    returns = BookReturn.query.all()
+    return jsonify([return_record.to_dict() for return_record in returns]), 200
 
 
 @socketio.on('subscribe_requests')
