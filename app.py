@@ -345,7 +345,63 @@ def get_returns():
     returns = BookReturn.query.all()
     return jsonify([return_record.to_dict() for return_record in returns]), 200
 
+@app.route('/return_book', methods=['POST'])
+def return_book():
+    """
+    Обрабатывает возврат книги.
+    Ожидает JSON с данными:
+    - request_id: ID заявки на книгу
+    - user_id: ID пользователя, который возвращает книгу
+    - book_id: ID книги
+    """
+    data = request.get_json()
 
+    request_id = data.get('request_id')
+    user_id = data.get('user_id')
+    book_id = data.get('book_id')
+
+    if not request_id or not user_id or not book_id:
+        return jsonify({'message': 'Missing data'}), 400
+
+    # Проверяем существование заявки
+    req = Request.query.get(request_id)
+    if not req:
+        return jsonify({'message': 'Request not found'}), 404
+
+    # Проверяем, принадлежит ли заявка указанному пользователю
+    if req.user_id != user_id:
+        return jsonify({'message': 'This request does not belong to the user'}), 403
+
+    # Проверяем существование книги
+    book = Book.query.get(book_id)
+    if not book:
+        return jsonify({'message': 'Book not found'}), 404
+
+    # Проверяем, не была ли книга уже возвращена
+    existing_return = BookReturn.query.filter_by(
+        request_id=request_id,
+        user_id=user_id,
+        book_id=book_id
+    ).first()
+    if existing_return:
+        return jsonify({'message': 'Book has already been returned'}), 409
+
+    # Создаём запись о возврате книги
+    new_return = BookReturn(
+        request_id=request_id,
+        user_id=user_id,
+        book_id=book_id,
+        is_returned=True
+    )
+    db.session.add(new_return)
+
+    # Обновляем статус заявки и книги
+    req.status = False  # Заявка считается завершённой
+    book.isFree = True  # Книга становится доступной для новых заявок
+
+    db.session.commit()
+
+    return jsonify({'message': 'Book return processed successfully'}), 201
 @socketio.on('subscribe_requests')
 def handle_subscribe_requests():
     emit('request_update', [req.to_dict() for req in Request.query.all()])
