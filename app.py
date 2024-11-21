@@ -271,27 +271,33 @@ def get_book_and_user_by_ids():
 
 
 @app.route('/update_request_status', methods=['POST'])
-def update_request_status(request_id):
-    # Находим заявку по ID
-    request = Request.query.get(request_id)
-    if not request:
+def update_request_status():
+    data = request.get_json()
+    request_id = data.get('requestId')
+    status = data.get('status')
+
+    # Проверка наличия необходимых данных
+    if request_id is None or status is None:
+        return jsonify({'message': 'requestId and status are required'}), 400
+
+    # Проверка, что status это булевое значение
+    if not isinstance(status, bool):
+        return jsonify({'message': 'Status must be a boolean'}), 400
+
+    # Находим заявку по id
+    request_entry = Request.query.get(request_id)
+    if not request_entry:
         return jsonify({'message': 'Request not found'}), 404
 
-    # Проверяем, доступна ли книга
-    book = Book.query.get(request.book_id)
-    if not book:
-        return jsonify({'message': 'Book not found'}), 404
+    # Обновляем статус заявки
+    request_entry.status = status
+    db.session.commit()  # Сохраняем изменения в базе данных
 
-    if not book.is_free:
-        return jsonify({'message': 'The book has already been taken'}), 400  # Книга уже взята
-
-    # Если книга доступна, обновляем статус заявки
-    request.status = True  # Подтверждаем заявку
-    book.is_free = False  # Книга больше не доступна
-
-    db.session.commit()
-
-    return jsonify({'message': 'Request confirmed successfully'}), 200
+    return jsonify({
+        'message': 'Request status updated successfully',
+        'request_id': request_entry.id,
+        'new_status': request_entry.status
+    }), 200
 @app.route('/user_requests_by_id/<int:user_id>', methods=['GET'])
 def get_user_requests_by_id(user_id):
     # Проверяем, существует ли пользователь
