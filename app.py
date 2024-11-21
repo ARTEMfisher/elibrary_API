@@ -108,6 +108,7 @@ def load_books_from_json(file_path):
 
 # Инициализация базы данных
 with app.app_context():
+    app.app_context().push()
     db.create_all()
     init_admin_user()
     load_books_from_json('books.json')
