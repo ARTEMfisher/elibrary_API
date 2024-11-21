@@ -309,7 +309,8 @@ def get_user_requests_by_id(user_id):
     user_requests = [
         {
             'book_title': request.book.title if request.book else None,  # Название книги
-            'status': request.status  # Статус заявки
+            'status': request.status , # Статус заявки
+            'id' : request.id
         }
         for request in user.requests_made  # Обход всех заявок пользователя
     ]
