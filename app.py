@@ -55,16 +55,22 @@ class Book(db.Model):
     isFree = db.Column(db.Boolean, nullable=False)
     request_status = db.Column(db.JSON, nullable=True)  # Статус заявок
 
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'title': self.title,
-            'author': self.author,
-            'image_url': self.image_url,
-            'holders': self.holders,
-            'isFree': self.isFree,
-            'request_status': self.request_status
-        }
+class BookReturn(db.Model):
+    __tablename__ = 'book_returns'
+
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.Integer, db.ForeignKey('requests.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    book_id = db.Column(db.Integer, db.ForeignKey('books.id'), nullable=False)
+    is_returned = db.Column(db.Boolean, nullable=False, default=False)
+
+    # Отношения с другими таблицами
+    request = db.relationship('Request', backref=db.backref('returns', lazy=True))
+    user = db.relationship('User', backref=db.backref('returns', lazy=True))
+    book = db.relationship('Book', backref=db.backref('returns', lazy=True))
+
+    def __repr__(self):
+        return f'<BookReturn {self.id}>'
 
 
 # Инициализация администратора
@@ -309,6 +315,55 @@ def search_books():
 
     # Возвращаем найденные книги
     return jsonify([book.to_dict() for book in books]), 200
+
+@app.route('/return_book', methods=['POST'])
+def return_book():
+    data = request.get_json()
+    request_id = data.get('request_id')
+    user_id = data.get('user_id')
+    book_id = data.get('book_id')  # ID книги, которую возвращают
+
+    if not request_id or not user_id or not book_id:
+        return jsonify({'message': 'Missing data'}), 400
+
+    # Проверяем, существует ли заявка с таким request_id
+    request = Request.query.get(request_id)
+    if not request:
+        return jsonify({'message': 'Request not found'}), 404
+
+    # Проверяем, что заявка принадлежит этому пользователю
+    if request.user_id != user_id:
+        return jsonify({'message': 'This request does not belong to the user'}), 400
+
+    # Создаем новую запись в таблице возвратов
+    new_return = BookReturn(request_id=request_id, user_id=user_id, book_id=book_id, is_returned=True)
+    db.session.add(new_return)
+    db.session.commit()
+
+    return jsonify({'message': 'Return request added successfully'}), 201
+
+@app.route('/update_return_status/<int:return_id>', methods=['PUT'])
+def update_return_status(return_id):
+    book_return = BookReturn.query.get(return_id)
+
+    if not book_return:
+        return jsonify({'message': 'Return record not found'}), 404
+
+    book_return.is_returned = True  # Изменяем статус на "возвращена"
+    db.session.commit()
+
+    return jsonify({'message': 'Book return status updated successfully'}), 200
+
+@app.route('/returns', methods=['GET'])
+def get_returns():
+    returns = BookReturn.query.all()
+    return jsonify([{
+        'id': return_record.id,
+        'request_id': return_record.request_id,
+        'user_id': return_record.user_id,
+        'book_id': return_record.book_id,
+        'is_returned': return_record.is_returned
+    } for return_record in returns]), 200
 
 
 @socketio.on('subscribe_requests')
