@@ -18,7 +18,8 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    requests = db.Column(db.JSON, nullable=True)  # Список заявок
+    requests = db.relationship('Request', backref='user', lazy=True)  # Связь с заявками
+
 
     def to_dict(self):
         return {
@@ -29,10 +30,13 @@ class User(db.Model):
 
 # Модель заявки
 class Request(db.Model):
+    __tablename__ = 'requests'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Связь с пользователем
-    book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=False)  # Связь с книгой
-    status = db.Column(db.Boolean, nullable=True)  # Статус заявки (True/False/None)
+    book_id = db.Column(db.Integer, db.ForeignKey('books.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    status = db.Column(db.Boolean, nullable=True)
+    # Добавьте другие поля для вашей модели запроса
+
 
     user = db.relationship('User', backref='requests_made')  # Обратная связь с пользователем
     book = db.relationship('Book', backref='requests_received')  # Обратная связь с книгой
@@ -213,18 +217,25 @@ def create_request():
     book_id = data.get('bookId')
     user = User.query.get(user_id)
     book = Book.query.get(book_id)
+
     if not user or not book:
         return jsonify({'message': 'User or book not found'}), 404
+
+    if not book.isFree:
+        return jsonify({'message': 'Book is not available'}), 400  # Книга уже занята
+
     new_request = Request(user_id=user_id, book_id=book_id, status=None)
     db.session.add(new_request)
     db.session.commit()
+
     if user.requests is None:
         user.requests = []
     user.requests.append(new_request.id)
     db.session.commit()
     socketio.emit('request_update', [req.to_dict() for req in Request.query.all()])
+
     return jsonify({'message': 'Request created successfully'}), 201
-# Эндпоинт: получить название книги по id
+
 @app.route('/book_title/<int:book_id>', methods=['GET'])
 def get_book_title(book_id):
     book = Book.query.get(book_id)
@@ -342,17 +353,29 @@ def return_book():
 
     return jsonify({'message': 'Return request added successfully'}), 201
 
-@app.route('/update_return_status/<int:return_id>', methods=['PUT'])
-def update_return_status(return_id):
-    book_return = BookReturn.query.get(return_id)
+@app.route('/update_request_status/<int:request_id>', methods=['POST'])
+def update_request_status(request_id):
+    # Находим заявку по ID
+    request = Request.query.get(request_id)
+    if not request:
+        return jsonify({'message': 'Request not found'}), 404
 
-    if not book_return:
-        return jsonify({'message': 'Return record not found'}), 404
+    # Проверяем, доступна ли книга
+    book = Book.query.get(request.book_id)
+    if not book:
+        return jsonify({'message': 'Book not found'}), 404
 
-    book_return.is_returned = True  # Изменяем статус на "возвращена"
+    if not book.isFree:
+        return jsonify({'message': 'The book has already been taken'}), 400  # Книга уже взята
+
+    # Если книга доступна, обновляем статус заявки
+    request.status = True  # Подтверждаем заявку
+    book.isFree = False  # Книга больше не доступна
+
     db.session.commit()
 
-    return jsonify({'message': 'Book return status updated successfully'}), 200
+    return jsonify({'message': 'Request confirmed successfully'}), 200
+
 
 @app.route('/returns', methods=['GET'])
 def get_returns():
