@@ -249,24 +249,27 @@ def get_book_and_user_by_ids():
 
 
 @app.route('/update_request_status', methods=['POST'])
-def update_request_status():
-    data = request.get_json()
-    request_id = data.get('requestId')
-    status = data.get('status')
-    if not isinstance(status, bool):
-        return jsonify({'message': 'Invalid status value'}), 400
-    req = Request.query.get(request_id)
-    if not req:
+def update_request_status(request_id):
+    # Находим заявку по ID
+    request = Request.query.get(request_id)
+    if not request:
         return jsonify({'message': 'Request not found'}), 404
-    req.status = status
-    book = Book.query.get(req.book_id)
-    if status:
-        book.isFree = False
+
+    # Проверяем, доступна ли книга
+    book = Book.query.get(request.book_id)
+    if not book:
+        return jsonify({'message': 'Book not found'}), 404
+
+    if not book.is_free:
+        return jsonify({'message': 'The book has already been taken'}), 400  # Книга уже взята
+
+    # Если книга доступна, обновляем статус заявки
+    request.status = True  # Подтверждаем заявку
+    book.is_free = False  # Книга больше не доступна
+
     db.session.commit()
-    socketio.emit('request_update', [req.to_dict() for req in Request.query.all()])
-    return jsonify({'message': 'Request status updated successfully'}), 200
 
-
+    return jsonify({'message': 'Request confirmed successfully'}), 200
 @app.route('/user_requests_by_id/<int:user_id>', methods=['GET'])
 def get_user_requests_by_id(user_id):
     # Проверяем, существует ли пользователь
