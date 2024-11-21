@@ -318,28 +318,6 @@ def get_user_requests_by_id(user_id):
 
     return jsonify(user_requests), 200
 
-@app.route('/search_books', methods=['GET'])
-def search_books():
-    query = request.args.get('query', '').strip().lower()  # Получаем параметр "query"
-    if not query:
-        return jsonify({'error': 'Query parameter is required'}), 400
-
-    # Попробуем интерпретировать query как ID, если это возможно
-    try:
-        query_id = int(query)
-    except ValueError:
-        query_id = None
-
-    # Поиск книг по ID, названию или автору
-    books = Book.query.filter(
-        (Book.id == query_id) |  # Поиск по ID
-        (Book.title.ilike(f"%{query}%")) |  # Поиск по названию
-        (Book.author.ilike(f"%{query}%"))   # Поиск по автору
-    ).all()
-
-    # Возвращаем найденные книги
-    return jsonify([book.to_dict() for book in books]), 200
-
 @app.route('/returns', methods=['GET'])
 def get_returns():
     returns = BookReturn.query.all()
@@ -434,6 +412,56 @@ def update_return_status():
     db.session.commit()
 
     return jsonify({'message': 'Return status updated successfully'}), 200
+
+# @app.route('/search_books', methods=['GET'])
+# def search_books():
+#     query = request.args.get('query', '').strip().lower()  # Получаем параметр "query"
+#     if not query:
+#         return jsonify({'error': 'Query parameter is required'}), 400
+#
+#     # Попробуем интерпретировать query как ID, если это возможно
+#     try:
+#         query_id = int(query)
+#     except ValueError:
+#         query_id = None
+#
+#     # Поиск книг по ID, названию или автору
+#     books = Book.query.filter(
+#         (Book.id == query_id) |  # Поиск по ID
+#         (Book.title.ilike(f"%{query}%")) |  # Поиск по названию
+#         (Book.author.ilike(f"%{query}%"))   # Поиск по автору
+#     ).all()
+#
+#     # Возвращаем найденные книги
+#     return jsonify([book.to_dict() for book in books]), 200
+
+@app.route('/search_books', methods=['GET'])
+def search_books():
+    query = request.args.get('query', '').strip().lower()  # Получаем параметр "query" и приводим к нижнему регистру
+    if not query:
+        return jsonify({'error': 'Query parameter is required'}), 400
+
+    # Попробуем интерпретировать query как ID, если это возможно
+    try:
+        query_id = int(query)
+    except ValueError:
+        query_id = None
+
+    # Создаем запрос для поиска
+    if query_id is not None:  # Если query - это число, ищем по ID
+        books = Book.query.filter(Book.id == query_id).all()
+    else:
+        # Поиск по отрывкам букв в названии и авторе
+        books = Book.query.filter(
+            (Book.title.ilike(f"%{query}%")) |  # Поиск по части названия книги
+            (Book.author.ilike(f"%{query}%"))   # Поиск по части автора
+        ).all()
+
+    # Возвращаем найденные книги
+    if books:
+        return jsonify([book.to_dict() for book in books]), 200
+    else:
+        return jsonify({'message': 'No books found'}), 404
 
 
 @socketio.on('subscribe_requests')
