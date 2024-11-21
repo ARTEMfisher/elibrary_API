@@ -457,11 +457,9 @@ def search_books():
             (Book.author.ilike(f"%{query}%"))   # Поиск по части автора
         ).all()
 
-    # Возвращаем найденные книги
-    if books:
-        return jsonify([book.to_dict() for book in books]), 200
-    else:
-        return jsonify({'message': 'No books found'}), 404
+    # Возвращаем найденные книги (пустой список, если ничего не найдено)
+    return jsonify([book.to_dict() for book in books]), 200
+
 
 
 @socketio.on('subscribe_requests')
