@@ -402,6 +402,40 @@ def return_book():
     db.session.commit()
 
     return jsonify({'message': 'Book return processed successfully'}), 201
+
+@app.route('/update_return_status', methods=['PUT'])
+def update_return_status():
+    data = request.get_json()
+
+    return_id = data.get('return_id')
+    is_returned = data.get('is_returned')
+
+    if return_id is None or is_returned is None:
+        return jsonify({'message': 'Missing return_id or is_returned'}), 400
+
+    # Проверяем, существует ли запись о возврате
+    book_return = BookReturn.query.get(return_id)
+    if not book_return:
+        return jsonify({'message': 'Return record not found'}), 404
+
+    # Обновляем статус возврата
+    book_return.is_returned = is_returned
+
+    # Если книга возвращена, обновляем её статус в таблице Book
+    if is_returned:
+        book = Book.query.get(book_return.book_id)
+        if book:
+            book.isFree = True
+    else:
+        book = Book.query.get(book_return.book_id)
+        if book:
+            book.isFree = False
+
+    db.session.commit()
+
+    return jsonify({'message': 'Return status updated successfully'}), 200
+
+
 @socketio.on('subscribe_requests')
 def handle_subscribe_requests():
     emit('request_update', [req.to_dict() for req in Request.query.all()])
