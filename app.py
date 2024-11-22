@@ -437,9 +437,9 @@ def update_return_status():
 
 @app.route('/search_books', methods=['GET'])
 def search_books():
-    query = request.args.get('query', '').strip().lower()  # Получаем параметр "query" и приводим к нижнему регистру
+    query = request.args.get('query', '').strip().lower()  # Получаем параметр "query"
     if not query:
-        return jsonify({'error': 'Query parameter is required'}), 400
+        return jsonify([]), 200  # Возвращаем пустой список, если нет запроса
 
     # Попробуем интерпретировать query как ID, если это возможно
     try:
@@ -447,15 +447,19 @@ def search_books():
     except ValueError:
         query_id = None
 
-    # Создаем запрос для поиска
-    if query_id is not None:  # Если query - это число, ищем по ID
+    # Поиск книг по ID, названию или автору (с учетом регистра и частичных совпадений)
+    if query_id is not None:
+        # Если это число, ищем по точному ID
         books = Book.query.filter(Book.id == query_id).all()
     else:
-        # Поиск по отрывкам букв в названии и авторе
+        # Если это строка, ищем по названию или автору с частичным совпадением
         books = Book.query.filter(
-            (Book.title.ilike(f"%{query}%")) |  # Поиск по части названия книги
-            (Book.author.ilike(f"%{query}%"))   # Поиск по части автора
+            (Book.title.ilike(f"%{query}%")) |  # Частичное совпадение по названию
+            (Book.author.ilike(f"%{query}%"))   # Частичное совпадение по автору
         ).all()
+
+    # Возвращаем найденные книги, если они есть, или пустой список
+    return jsonify([book.to_dict() for book in books]), 200
 
     # Возвращаем найденные книги (пустой список, если ничего не найдено)
     return jsonify([book.to_dict() for book in books]), 200
