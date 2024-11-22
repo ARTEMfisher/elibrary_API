@@ -213,14 +213,14 @@ def get_requests():
     requests_data = [{'id': req.id, 'status': req.status, 'book_id': req.book_id, 'user_id': req.user_id} for req in requests]
     return jsonify(requests_data)
 
-@socketio.on('subscribe_requests')
-def handle_requests_subscription():
-    # Emit updates about requests as they change
-    while True:
-        requests = Request.query.all()  # Get updated requests
-        requests_data = [{'id': req.id, 'status': req.status, 'book_id': req.book_id, 'user_id': req.user_id} for req in requests]
-        emit('request_update', requests_data)
-        socketio.sleep(1)
+# @socketio.on('subscribe_requests')
+# def handle_requests_subscription():
+#     # Emit updates about requests as they change
+#     while True:
+#         requests = Request.query.all()  # Get updated requests
+#         requests_data = [{'id': req.id, 'status': req.status, 'book_id': req.book_id, 'user_id': req.user_id} for req in requests]
+#         emit('request_update', requests_data)
+#         socketio.sleep(1)
 
 @app.route('/create_request', methods=['POST'])
 def create_request():
@@ -466,10 +466,10 @@ def search_books():
 
 
 
-@socketio.on('subscribe_requests')
-def handle_subscribe_requests():
-    emit('request_update', [req.to_dict() for req in Request.query.all()])
+# @socketio.on('subscribe_requests')
+# def handle_subscribe_requests():
+#     emit('request_update', [req.to_dict() for req in Request.query.all()])
 
 # Запуск приложения
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000)
