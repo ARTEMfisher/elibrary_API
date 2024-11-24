@@ -417,10 +417,10 @@ def update_return_status():
     if not book:
         return jsonify({'message': 'Book not found'}), 404
 
-    if is_returned:  # Если is_returned == True, ничего не делаем
+    if not is_returned:  # Если is_returned == True, ничего не делаем
         return jsonify({'message': 'No changes needed, book is already returned'}), 200
 
-    if not is_returned:  # Если is_returned == False
+    if is_returned:  # Если is_returned == False
         if not book.isFree:  # Если книга занята (isFree == False)
             # Обновляем статус возврата и книги
             book_return.is_returned = True
