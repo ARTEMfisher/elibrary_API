@@ -122,7 +122,14 @@ def load_books_from_json(file_path):
 with app.app_context():
     db.create_all()
     init_admin_user()
-    load_books_from_json('books.json')
+
+    # Проверка на пустоту таблицы 'Book'
+    if Book.query.count() == 0:  # Если в таблице нет записей
+        load_books_from_json('books.json')
+        print("Данные из 'books.json' загружены в таблицу 'Book'.")
+    else:
+        print("Таблица 'Book' уже заполнена, данные из JSON не загружаются.")
+
 
 
 # Эндпоинт: проверка пользователя
