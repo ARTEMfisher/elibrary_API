@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_socketio import SocketIO, emit
 import json
+import re
 
 
 app = Flask(__name__)
@@ -449,37 +450,31 @@ def update_return_status():
     }), 200
 
 
+
+
 @app.route('/search_books', methods=['GET'])
 def search_books():
     query = request.args.get('query', '').strip().lower()  # Получаем параметр "query"
     if not query:
         return jsonify([]), 200  # Возвращаем пустой список, если нет запроса
 
-    # Разбиваем запрос на слова для улучшения поиска
-    query_words = query.split()
+    # Загружаем все книги из базы
+    all_books = Book.query.all()
 
-    # Попробуем интерпретировать query как ID, если это возможно
-    try:
-        query_id = int(query)
-    except ValueError:
-        query_id = None
+    # Функция для проверки совпадения с использованием регулярных выражений
+    def matches(book, query):
+        # Создаём паттерн для поиска (чувствительность к пробелам и регистру)
+        pattern = re.compile(re.escape(query), re.IGNORECASE)
+        return (
+            pattern.search(book.title.lower()) is not None or
+            pattern.search(book.author.lower()) is not None
+        )
 
-    # Поиск книг по ID, названию или автору
-    if query_id is not None:
-        # Если это число, ищем по точному ID
-        books = Book.query.filter(Book.id == query_id).all()
-    else:
-        # Если это строка, ищем с учётом разбитых слов
-        conditions = []
-        for word in query_words:
-            conditions.append(Book.title.ilike(f"%{word}%"))  # Поиск слова в названии
-            conditions.append(Book.author.ilike(f"%{word}%"))  # Поиск слова в авторе
+    # Фильтруем книги, проверяя совпадение через регулярное выражение
+    matched_books = [book for book in all_books if matches(book, query)]
 
-        # Объединяем условия в запросе
-        books = Book.query.filter(db.or_(*conditions)).all()
-
-    # Возвращаем найденные книги (пустой список, если ничего не найдено)
-    return jsonify([book.to_dict() for book in books]), 200
+    # Возвращаем найденные книги
+    return jsonify([book.to_dict() for book in matched_books]), 200
 
 
 # Запуск приложения
