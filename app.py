@@ -461,22 +461,17 @@ def search_books():
     # Загружаем все книги из базы
     all_books = Book.query.all()
 
-    # Функция для проверки совпадения с использованием регулярных выражений
-    def matches(book, query):
-        # Создаём паттерн для поиска (чувствительность к пробелам и регистру)
-        pattern = re.compile(re.escape(query), re.IGNORECASE)
-        return (
-            pattern.search((book.title+book.author).lower()) is not None or
-            pattern.search(book.author.lower()) is not None
-        )
+    # Создаём регулярное выражение для поиска
+    pattern = re.compile(re.escape(query), re.IGNORECASE)
 
     # Фильтруем книги, проверяя совпадение через регулярное выражение
-    matched_books = [book for book in all_books if matches(book, query)]
+    matched_books = [
+        book for book in all_books
+        if pattern.search(f"{book.title.lower()} {book.author.lower()}") is not None
+    ]
 
     # Возвращаем найденные книги
     return jsonify([book.to_dict() for book in matched_books]), 200
-
-
 # Запуск приложения
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
