@@ -466,7 +466,7 @@ def search_books():
         # Создаём паттерн для поиска (чувствительность к пробелам и регистру)
         pattern = re.compile(re.escape(query), re.IGNORECASE)
         return (
-            pattern.search(book.title.lower()+book.author.lower()) is not None or
+            pattern.search((book.title+book.author).lower()) is not None or
             pattern.search(book.author.lower()) is not None
         )
 
