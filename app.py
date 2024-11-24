@@ -412,22 +412,33 @@ def update_return_status():
     if not book_return:
         return jsonify({'message': 'Return record not found'}), 404
 
-    # Обновляем статус возврата
-    book_return.is_returned = is_returned
+    # Проверяем книгу, связанную с возвратом
+    book = Book.query.get(book_return.book_id)
+    if not book:
+        return jsonify({'message': 'Book not found'}), 404
 
-    # Если книга возвращена, обновляем её статус в таблице Book
-    if is_returned:
-        book = Book.query.get(book_return.book_id)
-        if book:
+    if is_returned:  # Если is_returned == True, ничего не делаем
+        return jsonify({'message': 'No changes needed, book is already returned'}), 200
+
+    if not is_returned:  # Если is_returned == False
+        if not book.isFree:  # Если книга занята (isFree == False)
+            # Обновляем статус возврата и книги
+            book_return.is_returned = True
             book.isFree = True
-    else:
-        book = Book.query.get(book_return.book_id)
-        if book:
-            book.isFree = False
+        else:  # Если книга уже свободна (isFree == True)
+            return jsonify({'message': 'The book is already marked as free'}), 400
 
+    # Сохраняем изменения в базе данных
     db.session.commit()
 
-    return jsonify({'message': 'Return status updated successfully'}), 200
+    return jsonify({
+        'message': 'Return status updated successfully',
+        'return_id': book_return.id,
+        'is_returned': book_return.is_returned,
+        'book_id': book.id,
+        'book_isFree': book.isFree
+    }), 200
+
 
 # @app.route('/search_books', methods=['GET'])
 # def search_books():
