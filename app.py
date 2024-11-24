@@ -418,7 +418,8 @@ def update_return_status():
         return jsonify({'message': 'Book not found'}), 404
 
     if not is_returned:  # Если is_returned == True, ничего не делаем
-        return jsonify({'message': 'No changes needed, book is already returned'}), 200
+        return jsonify({'message': 'The book is already marked as free'}), 400
+
 
     if is_returned:  # Если is_returned == False
         if not book.isFree:  # Если книга занята (isFree == False)
@@ -426,7 +427,8 @@ def update_return_status():
             book_return.is_returned = True
             book.isFree = True
         else:  # Если книга уже свободна (isFree == True)
-            return jsonify({'message': 'The book is already marked as free'}), 400
+            return jsonify({'message': 'No changes needed, book is already returned'}), 200
+
 
     # Сохраняем изменения в базе данных
     db.session.commit()
