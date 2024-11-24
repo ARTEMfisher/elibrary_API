@@ -455,34 +455,32 @@ def search_books():
     if not query:
         return jsonify([]), 200  # Возвращаем пустой список, если нет запроса
 
+    # Разбиваем запрос на слова для улучшения поиска
+    query_words = query.split()
+
     # Попробуем интерпретировать query как ID, если это возможно
     try:
         query_id = int(query)
     except ValueError:
         query_id = None
 
-    # Поиск книг по ID, названию или автору (с учетом регистра и частичных совпадений)
+    # Поиск книг по ID, названию или автору
     if query_id is not None:
         # Если это число, ищем по точному ID
         books = Book.query.filter(Book.id == query_id).all()
     else:
-        # Если это строка, ищем по названию или автору с частичным совпадением
-        books = Book.query.filter(
-            (Book.title.ilike(f"%{query}%")) |  # Частичное совпадение по названию
-            (Book.author.ilike(f"%{query}%"))   # Частичное совпадение по автору
-        ).all()
+        # Если это строка, ищем с учётом разбитых слов
+        conditions = []
+        for word in query_words:
+            conditions.append(Book.title.ilike(f"%{word}%"))  # Поиск слова в названии
+            conditions.append(Book.author.ilike(f"%{word}%"))  # Поиск слова в авторе
 
-    # Возвращаем найденные книги, если они есть, или пустой список
-    return jsonify([book.to_dict() for book in books]), 200
+        # Объединяем условия в запросе
+        books = Book.query.filter(db.or_(*conditions)).all()
 
     # Возвращаем найденные книги (пустой список, если ничего не найдено)
     return jsonify([book.to_dict() for book in books]), 200
 
-
-
-# @socketio.on('subscribe_requests')
-# def handle_subscribe_requests():
-#     emit('request_update', [req.to_dict() for req in Request.query.all()])
 
 # Запуск приложения
 if __name__ == '__main__':
